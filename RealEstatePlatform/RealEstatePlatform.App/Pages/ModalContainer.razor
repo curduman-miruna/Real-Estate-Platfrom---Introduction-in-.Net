@@ -1,0 +1,58 @@
+﻿<!-- ModalContainer.razor -->
+
+<div class="modal-overlay" style="@(IsOpen ? "display: flex;" : "display: none;")">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>@Title</h3>
+            <button type="button" class="btn-close" @onclick="CloseModal"></button>
+        </div>
+        <div class="modal-content">
+            <div class="modal-body">
+                @ChildContent
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public string Title { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private void CloseModal()
+    {
+        IsOpen = false;
+        OnClose.InvokeAsync();
+    }
+}
+
+<style>
+    /* Add this to your existing styles or create a new style file */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000; /* Ensure the modal appears on top of other content */
+    }
+
+    .modal-container {
+        background: #fff; /* Background color of the modal */
+        border-radius: 5px;
+        width: 50vw;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-content{
+        padding: 20px;
+        justify-content: center;
+    }
+
+    /* Add any additional styling for the modal content, header, etc. */
+
+</style>

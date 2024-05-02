@@ -1,0 +1,72 @@
+﻿@page "/addlistingtype"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+<h3>Add Listing</h3>
+
+<EditForm Model="@ListingTypeViewModel" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary></ValidationSummary>
+
+    <div class="row mb-3 ms-2">
+        <label for="listingtypename" class="col-sm-3 form-label">Listing type name:</label>
+        <div class="col-sm-5">
+            <InputText id="listingtypename" class="form-control" @bind-Value="@ListingTypeViewModel.ListingTypeName" placeholder="Enter property type name"></InputText>
+            <ValidationMessage For="@(() => @ListingTypeViewModel.ListingTypeName)" />
+        </div>
+    </div>
+    <style>
+        .btn-add {
+            margin-left: 40px;
+            width: 30%;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    <div class="btn-container">
+        <button type="submit" class="btn-add btn btn-primary">Save</button>
+        <button class="btn-add btn btn-primary" @onclick="Cancel">Cancel</button>
+    </div>
+   
+</EditForm>
+
+@code {
+    [Inject]
+    public IListingTypeDataService ListingTypeDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    public ListingTypeViewModel ListingTypeViewModel { get; set; } = new ListingTypeViewModel();
+
+    public string Message { get; set; }
+}
+
+@functions {
+    private async Task HandleValidSubmit()
+    {
+        var result = await ListingTypeDataService.CreateListingTypeAsync(ListingTypeViewModel);
+        NavigationManager.NavigateTo("/listingtypeoverview");
+        if (result.IsSuccess)
+        {
+            Message = "Listing type created successfully";
+            NavigationManager.NavigateTo("/listingtypeoverview");
+        }
+        else
+        {
+            Message = result.Message;
+            if (!string.IsNullOrWhiteSpace(result.ValidationErrors))
+            {
+                Message += result.ValidationErrors;
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/listingtypeoverview");
+    }
+
+}

@@ -1,0 +1,100 @@
+﻿@page "/editprofile"
+@using System.Text.Json
+@using System.Text
+@using RealEstatePlatform.App.Auth
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+@inject IJSRuntime JSRuntime
+
+
+<h3>Edit Profile</h3>
+
+<div class="card">
+    <div class="card-body">
+        <EditForm Model="userInfo" OnValidSubmit="@HandleValidSubmit" class="form-signin">
+            <DataAnnotationsValidator />
+            <ValidationSummary></ValidationSummary>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label>
+                <InputText id="propertyname" class="form-control" @bind-Value="@userInfo.Email" placeholder="Enter email name"></InputText>
+                <ValidationMessage For="@(() => userInfo.Email)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <InputText id="firstname" class="form-control" @bind-Value="@userInfo.FullName" placeholder="Enter name:"></InputText>
+                <ValidationMessage For="@(() => userInfo.FullName)" />
+            </div>
+
+            <div class="mb-3">
+                <label for="Username" class="form-label">Username:</label>
+                <InputText id="lastname" class="form-control" @bind-Value="@userInfo.UniqueName" placeholder="Enter last name"></InputText>
+                <ValidationMessage For="@(() => userInfo.UniqueName)" />
+            </div>
+
+            <br />
+
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Save Changes</button>
+            <button class="btn btn-primary" @onclick="Cancel">Cancel</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    [Inject]
+    public IAuthenticationService AuthenticationService { get; set; }
+
+    public UpdateInformationViewModel userInfo { get; set; } = new UpdateInformationViewModel();
+
+    public string Message { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        userInfo = await GetUserFromLocalStorage();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            await authStateProvider.UpdateInformation(userInfo);
+            await authStateProvider.Logout();
+            navigationManager.NavigateTo("/login");
+
+        }
+        catch (Exception ex)
+        {
+            Message = ex.Message;
+        }
+      
+
+    }
+
+    private async Task<UpdateInformationViewModel> GetUserFromLocalStorage()
+    {
+        try
+        {
+            string userJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+
+            if (!string.IsNullOrEmpty(userJson))
+            {
+                return JsonSerializer.Deserialize<UpdateInformationViewModel>(userJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user from local storage: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private void Cancel()
+    {
+        navigationManager.NavigateTo("/profile");
+    }
+}

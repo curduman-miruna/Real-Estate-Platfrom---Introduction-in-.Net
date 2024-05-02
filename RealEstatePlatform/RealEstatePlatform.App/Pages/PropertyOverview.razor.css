@@ -1,0 +1,17 @@
+﻿.card:hover {
+    transform: scale(1.05); /* Add a slight scale effect on hover */
+
+}
+
+.card {
+   
+    transition: transform 0.3s ease; /* Add a smooth transition effect */
+}
+
+.price{
+font-size: 1.5rem;
+    font-weight: bold;
+    color: #1b1b1b;
+    padding-bottom: 0.5rem;
+}
+

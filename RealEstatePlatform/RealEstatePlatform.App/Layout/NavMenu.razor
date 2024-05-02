@@ -1,0 +1,81 @@
+﻿@using RealEstatePlatform.App.Contracts
+@inject IJSRuntime JSRuntime
+<style>
+    .white-icon {
+        filter: invert(100%);
+    }
+
+    .align-middle {
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 32px;
+    }
+</style>
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <img src="https://img.icons8.com/material-sharp/96/000000/real-estate.png" width="32" height="32" class="d-inline-block align-top white-icon" alt="Real Estate Icon">
+            <span class="align-middle">Real Estate Platform</span>
+        </a>
+
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <Microsoft.AspNetCore.Components.Authorization.CascadingAuthenticationState>
+        <Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+            <Microsoft.AspNetCore.Components.Authorization.AuthorizeView.Authorized>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="profile">
+                <span class="bi profile-icon" aria-hidden="true"></span> Profile
+            </NavLink>
+        </div>
+         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="inbox">
+                <span class="bi inbox-icon" aria-hidden="true"></span> Inbox
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="properties">
+                <span class="bi prop-icon" aria-hidden="true"></span> Properties
+            </NavLink>
+        </div>
+                <div class="nav-item px-3">
+            <NavLink class="nav-link" @onclick="Logout">
+                <span class="bi exit-icon" aria-hidden="true"></span> Logout
+            </NavLink>
+        </div>
+        
+            </Microsoft.AspNetCore.Components.Authorization.AuthorizeView.Authorized>
+        </Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+        </Microsoft.AspNetCore.Components.Authorization.CascadingAuthenticationState>
+    </nav>
+</div>
+
+@code {
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+    [Inject]
+    public IAuthenticationService AuthenticationService { get; set; }
+
+    private async Task Logout()
+    {
+        await AuthenticationService.Logout();
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "currentUser");
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

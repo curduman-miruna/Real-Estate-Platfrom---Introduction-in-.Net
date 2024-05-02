@@ -1,0 +1,60 @@
+﻿@page "/listingtypeoverview"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+<h3>ListingTypeOverview</h3>
+
+<br />
+
+@if (ListingTypes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Actions</th> <!-- New column for actions -->
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var listingType in ListingTypes)
+            {
+                <tr>
+                    <td>@listingType.ListingTypeName</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => NavigateToUpdateListing(listingType.ListingTypeId)">Update</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button class="btn btn-lg btn-primary" @onclick="NavigateToAddListing">Add Listing Type</button>
+}
+
+@code {
+    [Inject]
+    public IListingTypeDataService ListingTypeDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    public List<ListingTypeViewModel> ListingTypes { get; set; }
+
+    private void NavigateToAddListing()
+    {
+        NavigationManager.NavigateTo("/addlistingtype");
+    }
+
+    private void NavigateToUpdateListing(Guid listingTypeId)
+    {
+        NavigationManager.NavigateTo($"/editlistingtype/{listingTypeId}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListingTypes = (await ListingTypeDataService.GetListingTypesAsync()).ToList();
+    }
+}

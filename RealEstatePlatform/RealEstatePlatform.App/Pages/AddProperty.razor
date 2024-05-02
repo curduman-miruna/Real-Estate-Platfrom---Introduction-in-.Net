@@ -1,0 +1,331 @@
+﻿@page "/addproperty"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+@using System.Text.Json
+@using RealEstatePlatform.App.ViewModels.Dto
+@using RealEstatePlatform.App.Services.Responses
+@inject IJSRuntime JSRuntime
+
+<style>
+    .custom-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 80%;
+    }
+
+    .card-header {
+        background-color: #2C3531;
+        color: #ffffff;
+        border-radius: 10px 10px 0 0;
+        padding: 10px;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .card-content {
+        margin-bottom: 20px;
+    }
+
+    .btn-pred{
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="custom-card">
+    <div class="card-header">Add Property</div>
+
+    <div class="card-content">
+        <div class="btn-container">
+            <button class="btn-primary btn-pred btn-add btn" @onclick="OpenPredictionModal">Predict Price</button>
+        </div>
+        <EditForm Model="@PropertyViewModel" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary></ValidationSummary>
+
+            <div class="row mb-3 ms-2">
+                <label for="propertyname" class="col-sm-3 form-label">Property name:</label>
+                <div class="col-sm-8">
+                    <InputText id="propertyname" class="form-control" @bind-Value="@PropertyViewModel.PropertyName" placeholder="Enter property name"></InputText>
+                    <ValidationMessage For="@(() => PropertyViewModel.PropertyName)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="description" class="col-sm-3 form-label">Description:</label>
+                <div class="col-sm-8">
+                    <InputText id="description" class="form-control" @bind-Value="@PropertyViewModel.Description" placeholder="Enter description"></InputText>
+                    <ValidationMessage For="@(() => PropertyViewModel.Description)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="price" class="col-sm-3 form-label">Price:</label>
+                <div class="col-sm-8">
+                    <InputNumber id="price" class="form-control" @bind-Value="@PropertyViewModel.Price" placeholder="Enter the price"></InputNumber>
+                    <ValidationMessage For="@(() => PropertyViewModel.Price)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="location" class="col-sm-3 form-label">Location:</label>
+                <div class="col-sm-8">
+                    <InputText id="location" class="form-control" @bind-Value="@PropertyViewModel.Location" placeholder="Enter location"></InputText>
+                    <ValidationMessage For="@(() => PropertyViewModel.Location)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="bedrooms" class="col-sm-3 form-label">Bedrooms:</label>
+                <div class="col-sm-8">
+                    <InputNumber id="bedrooms" class="form-control" @bind-Value="@PropertyViewModel.Bedrooms" placeholder="Enter number of bedrooms"></InputNumber>
+                    <ValidationMessage For="@(() => PropertyViewModel.Bedrooms)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="bathrooms" class="col-sm-3 form-label">Bathrooms:</label>
+                <div class="col-sm-8">
+                    <InputNumber id="bathrooms" class="form-control" @bind-Value="@PropertyViewModel.Bathrooms" placeholder="Enter number of bathrooms"></InputNumber>
+                    <ValidationMessage For="@(() => PropertyViewModel.Bathrooms)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="area" class="col-sm-3 form-label">Area:</label>
+                <div class="col-sm-8">
+                    <InputNumber id="area" class="form-control" @bind-Value="@PropertyViewModel.Area" placeholder="Enter the area"></InputNumber>
+                    <ValidationMessage For="@(() => PropertyViewModel.Area)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="propertytypeid" class="col-sm-3 form-label">Property type:</label>
+                <div class="col-sm-8">
+                    <InputSelect id="propertytypeid" class="form-control" @bind-Value="@PropertyViewModel.PropertyTypeId">
+                        @foreach (var propertyType in PropertyTypes)
+                        {
+                            <option value="@propertyType.PropertyTypeId">@propertyType.PropertyTypeName</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => PropertyViewModel.PropertyTypeId)" />
+                </div>
+            </div>
+
+            <div class="row mb-3 ms-2">
+                <label for="listingtypeid" class="col-sm-3 form-label">Listing type:</label>
+                <div class="col-sm-8">
+                    <InputSelect id="listingtypeid" class="form-control" @bind-Value="@PropertyViewModel.ListingTypeId">
+                        @foreach (var listingType in ListingTypes)
+                        {
+                            <option value="@listingType.ListingTypeId">@listingType.ListingTypeName</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => PropertyViewModel.ListingTypeId)" />
+                </div>
+            </div>
+            <!-- Add the following code inside the <div class="card-content"> -->
+            <!-- Input for new image URL -->
+            <div class="row mb-3 ms-2">
+                <label for="image" class="col-sm-3 form-label">Images:</label>
+                <div class="col-sm-8">
+                    <div class="input-group">
+                        <input type="text" id="image" class="form-control" @bind="@newImage" placeholder="Enter image URL">
+                        <span class="btn btn-success" @onclick="AddImage">Add Image</span>
+                    </div>
+                    <ValidationMessage For="@(() => images)" />
+                </div>
+            </div>
+
+            <!-- Display added images -->
+            @if (images != null && images.Any())
+            {
+                <div class="mb-3 ms-2 row">
+                    <label class="col-sm-3 form-label">Added Images:</label>
+                    @foreach (var image in images)
+                    {
+                        <div class="d-flex justify-content-between mb-2 col-sm-8">
+                            <span>@image</span>
+                            <span class="btn btn-danger" @onclick="(() => RemoveImage(image))">Remove</span>
+                        </div>
+                    }
+                </div>
+            }
+
+
+
+            <style>
+                .btn-add {
+                    margin-left: 40px;
+                    width: 30%;
+                }
+
+                .btn-container {
+                    display: flex;
+                    justify-content: center;
+                }
+            </style>
+            <div class="btn-container">
+                <button type="submit" class="btn-add btn btn-primary">Save</button>
+                <button class="btn-add btn btn-primary" @onclick="Cancel">Cancel</button>
+            </div>
+
+        </EditForm>
+    </div>
+</div>
+
+
+<ModalContainer IsOpen="@isModalOpen" OnClose="HandleModalClose">
+    <PredictionPage />
+</ModalContainer>
+
+@code {
+    private bool isModalOpen = false;
+
+    private void OpenPredictionModal()
+    {
+        isModalOpen = true;
+    }
+
+    private void HandleModalClose()
+    {
+        isModalOpen = false;
+    }
+}
+
+<br />
+
+@code {
+    [Inject]
+    public IPropertyDataService PropertyDataService { get; set; }
+
+    [Inject]
+    public IPropertyTypeDataService PropertyTypeDataService { get; set; }
+
+    [Inject]
+    public IListingTypeDataService ListingTypeDataService { get; set; }
+
+    [Inject]
+    public IMLDataService MLDataService { get; set; }
+    
+    [Inject]
+    public IImageDataService ImageDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    public PropertyViewModel PropertyViewModel { get; set; } = new PropertyViewModel();
+
+    public List<PropertyTypeViewModel> PropertyTypes { get; set; } = new List<PropertyTypeViewModel>();
+
+    public List<ListingTypeViewModel> ListingTypes { get; set; } = new List<ListingTypeViewModel>();
+
+    public string Message { get; set; }
+
+
+
+
+    private class UserInformation
+    {
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string UniqueName { get; set; }
+    }
+
+    private UserInformation user;
+
+    private List<string> images = new List<string>();
+    private string newImage;
+
+    private void AddImage()
+    {
+        if (string.IsNullOrWhiteSpace(newImage))
+        {
+            return;
+        }
+
+        images.Add(newImage);
+        newImage = string.Empty; // Clear the input field
+    }
+
+    private void RemoveImage(string image)
+    {
+        images.Remove(image);
+    }
+
+ 
+}
+
+@functions {
+    private async Task<UserInformation> GetUserFromLocalStorage()
+    {
+        try
+        {
+            string userJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+
+            if (!string.IsNullOrEmpty(userJson))
+            {
+                return JsonSerializer.Deserialize<UserInformation>(userJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user from local storage: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private ApiResponse<PropertyDto> result;
+
+    private async Task HandleValidSubmit()
+    {
+
+        PropertyViewModel.Username = user.UniqueName;
+        Console.WriteLine(PropertyViewModel);
+        result = await PropertyDataService.CreatePropertyAsync(PropertyViewModel);
+        Console.WriteLine($"Result in page: {result.Data.PropertyId}");
+        if (result.IsSuccess)
+        {
+            Message = "Property created successfully";
+            if (images != null && images.Any())
+            {
+                foreach (var imageUrl in images)
+                {
+                    var newImageModel = new ImageViewModel
+                    {
+                        PropertyId = result.Data.PropertyId,
+                        ImageData = imageUrl
+                    };
+                    var imageResult = await ImageDataService.CreateImageAsync(newImageModel);
+                }
+            }
+            NavigationManager.NavigateTo("/profile");
+        }
+        else
+        {
+            Message = result.Message;
+            if (!string.IsNullOrWhiteSpace(result.ValidationErrors))
+            {
+                Message += result.ValidationErrors;
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/propertyoverview");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        PropertyTypes = (await PropertyTypeDataService.GetPropertyTypesAsync()).ToList();
+        ListingTypes = (await ListingTypeDataService.GetListingTypesAsync()).ToList();
+        user = await GetUserFromLocalStorage();
+        PropertyViewModel.PropertyTypeId = PropertyTypes.First().PropertyTypeId;
+        PropertyViewModel.ListingTypeId = ListingTypes.First().ListingTypeId;
+
+    }
+}

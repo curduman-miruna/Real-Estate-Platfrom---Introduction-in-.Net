@@ -1,0 +1,66 @@
+﻿@page "/editpropertytype/{PropertyTypeId}"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+
+<h3>Edit Property Type</h3>
+
+<EditForm Model="@PropertyTypeViewModel" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row mb-3 ms-2">
+        <label for="propertytypename" class="col-sm-3 form-label">Property type name:</label>
+        <div class="col-sm-5">
+            <InputText id="propertytypename" class="form-control" @bind-Value="@PropertyTypeViewModel.PropertyTypeName" placeholder="Enter property type name" />
+            <ValidationMessage For="@(() => PropertyTypeViewModel.PropertyTypeName)" />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <button class="btn btn-primary" @onclick="Cancel">Cancel</button>
+</EditForm>
+
+@code {
+    [Inject]
+    public IPropertyTypeDataService PropertyTypeDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    [Parameter]
+    public string PropertyTypeId { get; set; }
+
+    public PropertyTypeViewModel PropertyTypeViewModel { get; set; } = new PropertyTypeViewModel();
+
+    public string Message { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Guid.TryParse(PropertyTypeId, out Guid guidPropertyTypeId);
+        PropertyTypeViewModel = await PropertyTypeDataService.GetPropertyTypeByIdAsync(guidPropertyTypeId);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var result = await PropertyTypeDataService.UpdatePropertyTypeAsync(PropertyTypeViewModel);
+        NavigationManager.NavigateTo("/propertytypeoverview");
+        if (result.IsSuccess)
+        {
+            Message = "Property type updated successfully";
+            NavigationManager.NavigateTo("/propertytypeoverview");
+        }
+        else
+        {
+            Message = result.Message;
+            if (!string.IsNullOrWhiteSpace(result.ValidationErrors))
+            {
+                Message += result.ValidationErrors;
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/propertytypeoverview");
+    }
+}

@@ -1,0 +1,19 @@
+﻿@media (max-width: 768px) {
+    .user-item {
+        width: auto;
+    }
+
+    .convo {
+        flex-direction: column;
+    }
+
+    @media (max-width: 576px) {
+        /* Apply styles for screens smaller than 576px */
+        .inbox {
+            display: flex;
+            flex-direction: column;
+            overflow-x: scroll;
+        }
+
+    }
+}

@@ -1,0 +1,91 @@
+﻿@page "/register"
+@using RealEstatePlatform.App.Auth
+@using RealEstatePlatform.App.ViewModels
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+
+<style>
+    .custom-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 80%;
+    }
+
+    .login-title {
+        font-weight: 600;
+        text-align: center;
+        color: #116466;
+        
+</style>
+
+<div class="custom-card">
+    <div class="card-body">
+        <h1 class="h2 font-weight-normal login-title">
+            Register
+        </h1>
+
+        <EditForm class="form-signin" OnValidSubmit="OnSubmit" Model="register">
+            <DataAnnotationsValidator />
+
+            <label for="name" class="sr-only">Name</label>
+            <InputText id="name" class="form-control" @bind-Value="register.Name" autofocus placeholder="Name" />
+            <ValidationMessage For="@(() => register.Name)" />
+
+            <label for="email" class="sr-only">Email</label>
+            <InputText type="email" id="email" class="form-control" placeholder="Email" @bind-Value="register.Email" />
+            <ValidationMessage For="@(() => register.Email)" />
+
+            <label for="inputUsername" class="sr-only">Username</label>
+            <InputText id="inputUsername" class="form-control" @bind-Value="register.UserName" autofocus placeholder="Username" />
+            <ValidationMessage For="@(() => register.UserName)" />
+
+            <label for="inputPassword" class="sr-only">Password</label>
+            <InputText type="password" id="inputPassword" class="form-control" placeholder="Password" @bind-Value="register.Password" />
+            <ValidationMessage For="@(() => register.Password)" />
+
+            <label for="inputConfirmPassword" class="sr-only">Confirm Password</label>
+            <InputText type="password" id="inputConfirmPassword" class="form-control" placeholder="Confirm Password" @bind-Value="register.ConfirmPassword" />
+            <ValidationMessage For="@(() => register.ConfirmPassword)" />
+
+
+            <br />
+
+            <button class="btn btn-lg btn-primary btn-block" type="submit" onclick="OnClickHandler">Create Account</button>
+
+            <label class="text-danger">@error</label>
+        </EditForm>
+
+
+    </div>
+</div>
+
+
+@code {
+    RegisterViewModel register { get; set; } = new RegisterViewModel();
+    string error { get; set; }
+
+    async Task OnSubmit()
+    {
+        error = null;
+        try
+        {
+            // Check if the passwords match before attempting registration
+            if (register.Password != register.ConfirmPassword)
+            {
+                error = "Password and Confirm Password must match.";
+                return;
+            }
+
+            // Call the registration method
+            await authStateProvider.Register(register);
+            navigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+}

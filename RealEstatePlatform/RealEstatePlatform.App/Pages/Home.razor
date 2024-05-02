@@ -1,0 +1,103 @@
+﻿@page "/"
+@using RealEstatePlatform.App.Contracts
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JSRuntime
+<style>
+    body {
+    }
+    .content {
+        text-align: center;
+        padding: 50px;
+        color: #333;
+    }
+
+    .main-heading {
+        font-size: 36px;
+        margin-bottom: 20px;
+    }
+
+    .sub-heading {
+        font-size: 20px;
+        margin-bottom: 30px;
+    }
+
+    .button-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px; 
+    }
+
+        .button-container .btn {
+            margin: 0 20px;
+            width: calc(30% - 40px); 
+        }
+
+    .main-heading{
+        padding-top: 10%;
+    }
+
+    .btn {
+    }
+
+    .image {
+        z-index: -1;
+    }
+</style>
+<PageTitle>Home</PageTitle>
+
+<br />
+<div class="main-heading">
+    Find Your Dream Property
+</div>
+<div class="sub-heading">
+    Discover a wide range of properties for sale or rent.
+</div>
+<div>
+    <p>
+        Welcome to RealEstatePlatform! Whether you're looking for a new home, an investment property, or a commercial space, we've got you covered.
+    </p>
+    <p>
+        Explore our listings and find the perfect property that fits your needs.
+    </p>
+</div>
+<CascadingAuthenticationState>
+    <Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+       
+        <NotAuthorized>
+            <div class="button-container">
+                <button class="btn btn-lg btn-primary" @onclick="NavigateToLogin">Log in</button>
+                <button class="btn btn-lg btn-primary" @onclick="NavigateToRegister">Register</button>
+                <button class="btn btn-lg btn-primary" @onclick="NavigateToRegisterAgent">Register as agent</button>
+            </div>
+        </NotAuthorized>
+    </Microsoft.AspNetCore.Components.Authorization.AuthorizeView>
+</CascadingAuthenticationState>
+
+@functions {
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+    [Inject]
+    public IAuthenticationService AuthenticationService { get; set; }
+
+    private void NavigateToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private void NavigateToRegisterAgent()
+    {
+        NavigationManager.NavigateTo("/register-agent");
+    }
+
+    private void NavigateToRegister()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+
+    private async Task Logout()
+    {
+        await AuthenticationService.Logout();
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "currentUser");
+        NavigationManager.NavigateTo("/login", forceLoad: true);
+    }
+}

@@ -1,0 +1,60 @@
+﻿@page "/propertytypeoverview"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+<h3>PropertyTypeOverview</h3>
+
+<br />
+
+@if (PropertyTypes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Actions</th> <!-- New column for actions -->
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var propertyType in PropertyTypes)
+            {
+                <tr>
+                    <td>@propertyType.PropertyTypeName</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => NavigateToUpdatePropertyType(propertyType.PropertyTypeId)">Update</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <button class="btn btn-lg btn-primary" @onclick="NavigateToAddPropertyType">Add Property Type</button>
+}
+
+@code {
+    [Inject]
+    public IPropertyTypeDataService PropertyTypeDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    public List<PropertyTypeViewModel> PropertyTypes { get; set; }
+
+    private void NavigateToAddPropertyType()
+    {
+        NavigationManager.NavigateTo("/addpropertytype");
+    }
+
+    private void NavigateToUpdatePropertyType(Guid propertyTypeId)
+    {
+        NavigationManager.NavigateTo($"/editpropertytype/{propertyTypeId}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        PropertyTypes = (await PropertyTypeDataService.GetPropertyTypesAsync()).ToList();
+    }
+}

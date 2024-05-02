@@ -1,0 +1,245 @@
+﻿@page "/inbox/{OwnerUsername?}"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.Services
+@using RealEstatePlatform.App.ViewModels
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+
+<style>
+    .user-item {
+        cursor: pointer;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+        transition: background-color 0.3s ease;
+        width: 100%;
+    }
+
+        .user-item:hover {
+            background-color: #e0e0e0;
+        }
+    .convo{
+        overflow-y: scroll;
+    }
+</style>
+
+<style>
+    .my-message {
+        border-radius: 5px;
+        padding: 5px;
+        background-color: #007bff;
+        margin-bottom: 5px;
+        color: #fff;
+    }
+
+    .your-message {
+        border-radius: 5px;
+        padding: 5px;
+        margin-bottom: 5px;
+        background-color: #FF8400;
+        color: #fff;
+    }
+</style>
+
+<!-- Zona de conversații împărțită în două -->
+
+<div class="container inbox">
+    <div style="display: flex; flex-direction: row;" class="user">
+        <div style="flex: 1; border-right: 1px solid #ccc; padding: 10px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <input type="text" placeholder="@NewConversationUsername" @bind="NewConversationUsername" class="form-control" style="margin-right: 10px; width: 200px;">
+                <button type="button" class="btn btn-primary" @onclick="StartNewConversation">
+                    <img src="https://img.icons8.com/cotton/2x/new-message.png" alt="Message Icon" class="icon-image" style="height: 20px;" />
+                </button>
+            </div>
+            @if(UserNames != null)
+            {
+            @foreach (var userName in UserNames)
+            {
+                <div style="margin-bottom: 10px;">
+                    <label type="button" class="user-item" @onclick="() => LoadConversation(userName)">
+                        @userName
+                    </label>
+                </div>
+            }
+            }
+           
+        </div>
+
+        <!-- Secțiunea conversațiilor -->
+        <div style="flex: 3; padding: 10px;" class="convo">
+            @if (SelectedConversation != null)
+            {
+                <div>
+                    <div style="margin-top: 10px;">
+                        <h4>Conversație cu @SelectedConversation</h4>
+                        @foreach (var message in SelectedConversationMessages)
+                        {
+                            <div style="margin-bottom: 10px; clear: both;">
+                                @if (message.SenderUsername == user.UniqueName)
+                                {
+                                    <div class="my-message" style="float: left; clear: both;">
+                                        @message.MessageContent
+                                    </div>
+                                   
+                                }
+                                else
+                                {
+                                    <div class="your-message" style="float: right; clear: both;">
+                                        @message.MessageContent 
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <form @onsubmit="SendMessage">
+                        <div class="form-group" style="margin-bottom:20px">
+                            <textarea class="form-control" @bind="NewMessageContent"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Trimite</button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <p>Select a conversation to view messages.</p>
+            }
+        </div>
+
+    </div>
+</div>
+
+
+@code {
+    [Inject]
+    public IMessageDataService MessagesService { get; set; }
+
+    public List<MessageViewModel> MessagesSent { get; set; }
+
+    public List<MessageViewModel> MessagesGot { get; set; }
+
+    public List<string> UserNames { get; set; }
+
+    [Parameter]
+    public string OwnerUsername { get; set; }
+
+    private class UserInformation
+    {
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string UniqueName { get; set; }
+    }
+
+    private UserInformation user;
+
+    public string SelectedConversation { get; set; } = null;
+    public List<MessageViewModel> SelectedConversationMessages { get; set; }
+
+
+    private string NewConversationUsername { get; set; } 
+
+    private void StartNewConversation()
+    {
+        // Check if the new username is not empty
+        if (!string.IsNullOrWhiteSpace(NewConversationUsername))
+        {
+            LoadConversation(NewConversationUsername);
+            if (!UserNames.Contains(NewConversationUsername))
+            {
+                UserNames.Add(NewConversationUsername);
+            }
+            NewConversationUsername = string.Empty;
+        }
+    }
+
+
+    public string NewMessageContent { get; set; }
+
+    private async Task SendMessage()
+    {
+        // Validate the message content
+        if (string.IsNullOrWhiteSpace(NewMessageContent))
+        {
+            // Handle validation error (show a message, prevent submission, etc.)
+            return;
+        }
+
+        // Create a new message object
+        var newMessage = new MessageViewModel
+            {
+                SenderUsername = user.UniqueName,
+                ReceiverUsername = SelectedConversation,
+                MessageContent = NewMessageContent,
+            };
+
+        var response = await MessagesService.CreateMessageAsync(newMessage);
+        newMessage.CreatedDate = DateTime.Now;
+        SelectedConversationMessages.Add(newMessage);
+
+        // Clear the message input field
+        NewMessageContent = string.Empty;
+    }
+
+    protected async Task LoadConversation(string userName)
+    {
+        SelectedConversation = userName;
+        var sentMessages = MessagesSent.Where(m => m.ReceiverUsername == userName).Select(m => new MessageViewModel
+            {
+                SenderUsername = user.UniqueName,
+                ReceiverUsername = userName,
+                MessageContent = m.MessageContent,
+            });
+
+        var receivedMessages = MessagesGot.Where(m => m.SenderUsername == userName).Select(m => new MessageViewModel
+            {
+                SenderUsername = userName,
+                ReceiverUsername = user.UniqueName,
+                MessageContent = m.MessageContent,
+            });
+
+        SelectedConversationMessages = sentMessages.Concat(receivedMessages).OrderBy(m => m.CreatedDate).ToList();
+    }
+
+    private async Task<UserInformation> GetUserFromLocalStorage()
+    {
+        try
+        {
+            string userJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+
+            if (!string.IsNullOrEmpty(userJson))
+            {
+                return JsonSerializer.Deserialize<UserInformation>(userJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user from local storage: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await GetUserFromLocalStorage();
+        var result = (await MessagesService.GetMessagesAsync()).ToList();
+        MessagesSent = result.Where(p => p.SenderUsername == user.UniqueName).ToList();
+        MessagesGot = result.Where(p => p.ReceiverUsername == user.UniqueName).ToList();
+        UserNames = MessagesSent.Select(p => p.ReceiverUsername).Distinct().ToList();
+        UserNames.AddRange(MessagesGot.Select(p => p.SenderUsername).Distinct().ToList());
+        UserNames = UserNames.Distinct().ToList();
+        if (!string.IsNullOrEmpty(OwnerUsername))
+        {
+            NewConversationUsername = OwnerUsername;
+        }
+        else
+        {
+            NewConversationUsername = string.Empty;
+        }
+    }
+
+}

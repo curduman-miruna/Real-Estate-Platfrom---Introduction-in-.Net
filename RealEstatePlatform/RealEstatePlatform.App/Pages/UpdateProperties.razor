@@ -1,0 +1,239 @@
+﻿@page "/updateproperty/{propertyId}"
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+
+<h3>Update Property</h3>
+
+@if (PropertyViewModel == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="@PropertyViewModel" OnValidSubmit="@HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row mb-3 ms-2">
+            <label for="propertyname" class="col-sm-3 form-label">Property name:</label>
+            <div class="col-sm-5">
+                <InputText id="propertyname" class="form-control" @bind-Value="@PropertyViewModel.PropertyName" placeholder="Enter property name"></InputText>
+                <ValidationMessage For="@(() => PropertyViewModel.PropertyName)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="description" class="col-sm-3 form-label">Description:</label>
+            <div class="col-sm-5">
+                <InputText id="description" class="form-control" @bind-Value="@PropertyViewModel.Description" placeholder="Enter description"></InputText>
+                <ValidationMessage For="@(() => PropertyViewModel.Description)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="price" class="col-sm-3 form-label">Price:</label>
+            <div class="col-sm-5">
+                <InputNumber id="price" class="form-control" @bind-Value="@PropertyViewModel.Price" placeholder="Enter the price"></InputNumber>
+                <ValidationMessage For="@(() => PropertyViewModel.Price)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="location" class="col-sm-3 form-label">Location:</label>
+            <div class="col-sm-5">
+                <InputText id="location" class="form-control" @bind-Value="@PropertyViewModel.Location" placeholder="Enter location"></InputText>
+                <ValidationMessage For="@(() => PropertyViewModel.Location)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="bedrooms" class="col-sm-3 form-label">Bedrooms:</label>
+            <div class="col-sm-5">
+                <InputNumber id="bedrooms" class="form-control" @bind-Value="@PropertyViewModel.Bedrooms" placeholder="Enter number of bedrooms"></InputNumber>
+                <ValidationMessage For="@(() => PropertyViewModel.Bedrooms)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="bathrooms" class="col-sm-3 form-label">Bathrooms:</label>
+            <div class="col-sm-5">
+                <InputNumber id="bathrooms" class="form-control" @bind-Value="@PropertyViewModel.Bathrooms" placeholder="Enter number of bathrooms"></InputNumber>
+                <ValidationMessage For="@(() => PropertyViewModel.Bathrooms)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="area" class="col-sm-3 form-label">Area:</label>
+            <div class="col-sm-5">
+                <InputNumber id="area" class="form-control" @bind-Value="@PropertyViewModel.Area" placeholder="Enter the area"></InputNumber>
+                <ValidationMessage For="@(() => PropertyViewModel.Area)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="propertytypeid" class="col-sm-3 form-label">Property type:</label>
+            <div class="col-sm-5">
+                <InputSelect id="propertytypeid" class="form-control" @bind-Value="@PropertyViewModel.PropertyTypeId">
+                    @foreach (var propertyType in PropertyTypes)
+                    {
+                        <option value="@propertyType.PropertyTypeId">@propertyType.PropertyTypeName</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => PropertyViewModel.PropertyTypeId)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="listingtypeid" class="col-sm-3 form-label">Listing type:</label>
+            <div class="col-sm-5">
+                <InputSelect id="listingtypeid" class="form-control" @bind-Value="@PropertyViewModel.ListingTypeId">
+                    @foreach (var listingType in ListingTypes)
+                    {
+                        <option value="@listingType.ListingTypeId">@listingType.ListingTypeName</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => PropertyViewModel.ListingTypeId)" />
+            </div>
+        </div>
+
+        <div class="row mb-3 ms-2">
+            <label for="images" class="col-sm-3 form-label">Images:</label>
+            <div class="col-sm-8">
+                <!-- Display existing images -->
+                @if (Images != null && Images.Any())
+                {
+                    <div class="mb-3 ms-2 row">
+                        @foreach (var image in Images)
+                        {
+                            <div class="d-flex justify-content-between mb-2 col-sm-8">
+                                <span>@image.ImageData</span>
+                                <span class="btn btn-danger" @onclick="(() => RemoveImage(image))">Remove</span>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Input for new image URL -->
+                <div class="input-group">
+                    <input type="text" id="image" class="form-control" @bind="@newImage" placeholder="Enter image URL">
+                    <span class="btn btn-success" @onclick="(() => AddImage(newImage))">Add Image</span>
+                </div>
+                <ValidationMessage For="@(() => Images)" />
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Property</button>
+        <button class="btn btn-primary" @onclick="Cancel">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Inject]
+    public IPropertyDataService PropertyDataService { get; set; }
+
+    [Inject]
+    public IPropertyTypeDataService PropertyTypeDataService { get; set; }
+
+    [Inject]
+    public IListingTypeDataService ListingTypeDataService { get; set; }
+
+    [Inject]
+    public IImageDataService ImageDataService { get; set; }
+
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    [Parameter]
+    public string PropertyId { get; set; }
+
+    public PropertyViewModel PropertyViewModel { get; set; }
+
+    public List<PropertyTypeViewModel> PropertyTypes { get; set; }
+
+    public List<ListingTypeViewModel> ListingTypes { get; set; }
+
+    public List<ImageViewModel> Images { get; set; }
+
+    public string Message { get; set; }
+
+    private string newImage;
+
+    private async void AddImage(string imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return;
+        }
+        Images.Add(new ImageViewModel { ImageData = imageUrl });
+        Guid.TryParse(PropertyId, out Guid guidPropertyId);
+        var newImageModel = new ImageViewModel
+            {
+                PropertyId = guidPropertyId,
+                ImageData = imageUrl
+            };
+        var imageResult = await ImageDataService.CreateImageAsync(newImageModel);
+        newImage = string.Empty;
+    }
+
+    private async void RemoveImage(ImageViewModel image)
+    {
+        Images.Remove(image);
+        await ImageDataService.DeleteImageAsync(image.ImageId);
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        PropertyTypes = (await PropertyTypeDataService.GetPropertyTypesAsync()).ToList();
+        ListingTypes = (await ListingTypeDataService.GetListingTypesAsync()).ToList();
+        Guid.TryParse(PropertyId, out Guid guidPropertyId);
+        Images = (await ImageDataService.GetImagesByPropertyIdAsync(guidPropertyId)).ToList();
+        var existingProperty = await PropertyDataService.GetPropertyByIdAsync(guidPropertyId);
+        if (existingProperty != null)
+        {
+            PropertyViewModel = new PropertyViewModel
+                {
+                    PropertyId = existingProperty.PropertyId,
+                    PropertyName = existingProperty.PropertyName,
+                    ListingTypeId = existingProperty.ListingTypeId,
+                    PropertyTypeId = existingProperty.PropertyTypeId,
+                    Price = existingProperty.Price,
+                    Area = existingProperty.Area,
+                    Location = existingProperty.Location,
+                    Description = existingProperty.Description,
+                    Bedrooms = existingProperty.Bedrooms,
+                    Bathrooms = existingProperty.Bathrooms,
+                    Username = existingProperty.Username
+                };
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/pagenotfound");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var result = await PropertyDataService.UpdatePropertyAsync(PropertyViewModel);
+        NavigationManager.NavigateTo("/profile");
+        if (result.IsSuccess)
+        {
+            Message = "Property updated successfully";
+            NavigationManager.NavigateTo("/profile");
+        }
+        else
+        {
+            Message = result.Message;
+            if (!string.IsNullOrWhiteSpace(result.ValidationErrors))
+            {
+                Message += result.ValidationErrors;
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/propertyoverview");
+    }
+}

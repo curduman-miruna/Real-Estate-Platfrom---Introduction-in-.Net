@@ -1,0 +1,174 @@
+﻿@page "/profile"
+@using System.Text.Json
+@using RealEstatePlatform.App.Contracts
+@using RealEstatePlatform.App.ViewModels
+@inject IJSRuntime JSRuntime
+
+<style>
+    .property-img {
+        width: 100%;
+        height: 200px;
+        overflow: hidden;
+        border-radius: 5px;
+    }
+
+    .profile_info{
+        margin: 20px 0.75rem 20px 0.75rem;
+    }
+
+</style>
+
+@if (user != null)
+{
+    <div class="card profile_info">
+        <div class="card-body">
+            <h5 class="card-title">Profile Information</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Email:</strong> @user.Email</li>
+                <li class="list-group-item"><strong>Full Name:</strong> @user.FullName</li>
+                <li class="list-group-item"><strong>Username:</strong> @user.UniqueName</li>
+            </ul>
+            <button @onclick="GoToEditProfilePage" class="btn btn-primary mt-3">Edit Profile</button>
+        </div>
+    </div>
+}
+else
+{
+    <p>No user information found.</p>
+}
+
+<div class="d-flex justify-content-center mt-4" style="margin-bottom:20px">
+    <!-- Center the content -->
+    <button class="btn btn-lg btn-primary w-30" @onclick="NavigateToAddProperty">Add Property</button> <!-- Set width to 30% -->
+</div>
+
+
+@if (Properties != null)
+{
+    <div id="cardsView" class="container">
+        <div class="row">
+            @foreach (var property in Properties)
+            {
+                <div class="col-lg-4 mb-5">
+                    <div class="card h-100 shadow-3 hover-shadow-6">
+                        <div class="card-body">
+                            <div class="h-100 d-flex flex-column">
+                                <div class="content-holder">
+                                    <h4>@property.PropertyName</h4>
+                                    <div class="property-img mb-3">
+                                        @{
+                                            ImageProperty = GetImageForCertainPropertyId(property.PropertyId);
+                                        }
+                                        @if (ImageProperty != null)
+                                        {
+                                            <img src="@ImageProperty.ImageData" style="width:100%; height:auto;">
+                                        }
+                                        else
+                                        {
+                                            <img src="https://source.unsplash.com/featured/?building&@Guid.NewGuid().ToString()" style="width:100%; height:auto;">
+                                        }
+
+                                        <!-- Appending a unique identifier to the URL for a different image each time -->
+                                    </div>
+                                    <p>@property.Description</p>
+                                </div>
+                                <div class="w-100 mt-auto">
+                                    <button class="btn btn-lg btn-primary" @onclick="() => NavigateToPropertyDetails(property)">See details</button>
+                                    <button class="btn btn-lg btn-secondary" @onclick="() => NavigateToUpdateProperty(property)">Update</button>
+                                    <button class="btn btn-lg btn-danger" @onclick="() => DeleteProperty(property)">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Inject]
+    public IPropertyDataService PropertyDataService { get; set; }
+
+    [Inject]
+    public IImageDataService ImageDataService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    public List<PropertyViewModel> Properties { get; set; }
+
+    public List<ImageViewModel> Images { get; set; }
+
+    private class UserInformation
+    {
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string UniqueName { get; set; }
+    }
+
+    private UserInformation user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = (await PropertyDataService.GetPropertiesAsync()).ToList();
+        user = await GetUserFromLocalStorage();
+        Properties = result.Where(p => p.Username == user.UniqueName).ToList();
+        Images = (await ImageDataService.GetImagesAsync()).ToList();
+    }
+
+    private async Task<UserInformation> GetUserFromLocalStorage()
+    {
+        try
+        {
+            string userJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+
+            if (!string.IsNullOrEmpty(userJson))
+            {
+                return JsonSerializer.Deserialize<UserInformation>(userJson);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user from local storage: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private void GoToEditProfilePage()
+    {
+        NavigationManager.NavigateTo("/editprofile");
+    }
+
+    private void NavigateToUpdateProperty(PropertyViewModel property)
+    {
+        NavigationManager.NavigateTo($"/updateproperty/{property.PropertyId}");
+    }
+
+    private void NavigateToAddProperty()
+    {
+        NavigationManager.NavigateTo("/addproperty");
+    }
+
+    private void NavigateToPropertyDetails(PropertyViewModel property)
+    {
+        NavigationManager.NavigateTo($"/propertydetails/{property.PropertyId}");
+    }
+
+private async Task DeleteProperty(PropertyViewModel property)
+    {
+        await PropertyDataService.DeletePropertyAsync(property.PropertyId);
+        Properties.Remove(property);
+        NavigationManager.NavigateTo("/profile");
+       
+    }
+
+    public ImageViewModel ImageProperty { get; set; }
+
+
+    public ImageViewModel GetImageForCertainPropertyId(Guid propertyId)
+    {
+        return Images.FirstOrDefault(image => image.PropertyId == propertyId);
+    }
+}
